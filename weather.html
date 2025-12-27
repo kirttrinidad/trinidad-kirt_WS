@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CALABARZON & Major Cities Weather Update</title>
+<style>
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+html, body {
+  height: 100%;
+  font-family: 'Segoe UI', system-ui, Arial;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.5s ease;
+}
+
+body.sunny { background: linear-gradient(to bottom, #FFD93D, #ffffff); }
+body.rainy { background: linear-gradient(to bottom, #4FC3F7, #90CAF9); }
+body.cloudy { background: linear-gradient(to bottom, #90A4AE, #ECEFF1); }
+body.stormy { background: linear-gradient(to bottom, #F06292, #F8BBD0); }
+body.snowy { background: linear-gradient(to bottom, #B3E5FC, #E1F5FE); }
+
+.container {
+  width: 95%;
+  max-width: 900px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  padding: 24px;
+  text-align: center;
+  overflow: auto;
+  max-height: 95vh;
+  transition: background 0.5s ease;
+}
+
+header h1 {
+  font-size: 28px;
+  margin-bottom: 4px;
+  color: #333;
+}
+header small {
+  color: #555;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.card {
+  background: #f8f9fa;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+label {
+  font-weight: 600;
+  display: block;
+  margin-bottom: 6px;
+  color: #333;
+}
+
+select, button, input {
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  font-size: 16px;
+}
+
+select {
+  width: 100%;
+  margin-bottom: 12px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+button {
+  cursor: pointer;
+  background: #4facfe;
+  color: #fff;
+  border: none;
+  transition: 0.3s;
+  margin: 4px;
+  font-size: 16px;
+}
+button:hover {
+  background: #00f2fe;
+}
+
+#weatherBox {
+  min-height: 100px;
+  padding: 16px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  font-size: 16px;
+  color: #333;
+  line-height: 1.5;
+  overflow: auto;
+  max-height: 50vh;
+}
+
+/* Forecast Cards */
+.forecast-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.forecast-card {
+  flex: 1 1 120px;
+  border-radius: 10px;
+  padding: 12px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  color: #fff;
+  transition: transform 0.2s;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+.forecast-card:hover {
+  transform: translateY(-5px);
+}
+.forecast-card div {
+  margin: 4px 0;
+  font-size: 14px;
+}
+.forecast-icon {
+  font-size: 32px;
+}
+
+.clear { background: #FFD93D; color: #333; }
+.partly { background: #FFB74D; }
+.cloudy { background: #90A4AE; }
+.rain { background: #4FC3F7; }
+.snow { background: #B3E5FC; color: #333; }
+.storm { background: #F06292; }
+
+.forecast-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  opacity: 0.15;
+  font-size: 60px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.clear::after { content: "☀️"; }
+.partly::after { content: "⛅"; }
+.cloudy::after { content: "☁️"; }
+.rain::after { content: "🌧️"; }
+.snow::after { content: "❄️"; }
+.storm::after { content: "⛈️"; }
+
+@media(max-width:600px) {
+  .forecast-card { flex: 1 1 45%; }
+}
+</style>
+</head>
+
+<body class="sunny">
+  <div class="container">
+    <header>
+      <h1>CALABARZON & Major Cities Weather Update</h1>
+      <small>Current weather & 7-day forecast</small>
+    </header>
+
+    <div class="card">
+      <label>Select City/Municipality</label>
+      <input type="text" id="search" placeholder="Search municipality...">
+      <select id="city" size="20"></select>
+      <div>
+        <button id="getWeather">Get Current Weather</button>
+        <button id="getForecast">Get 7-Day Forecast</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div id="weatherBox">Click a button…</div>
+    </div>
+  </div>
+
+  <script>
+  const majorCities = [
+    "Manila","Quezon City","Caloocan","Davao City","Cebu City",
+    "Taguig","Pasig","Zamboanga City","Antipolo","Pasay","Las Piñas","Makati"
+  ];
+
+  const calabarzon = {
+    "Batangas": ["Batangas City","Agoncillo","Alitagtag","Balayan","Balete","Bauan","Calaca","Calatagan","Cuenca","Ibaan","Laurel","Lemery","Lian","Lipa","Lobo","Mabini","Malvar","Mataas na Kahoy","Nasugbu","Padre Garcia","Rosario","San Jose","San Juan","San Luis","San Nicolas","San Pascual","Santa Teresita","Santo Tomas","Taal","Talisay","Tanauan","Taysan","Tingloy","Tuy"],
+    "Cavite": ["Cavite City","Bacoor","Carmona","Dasmariñas","General Trias","Imus","Kawit","Tagaytay","Tanza","Trece Martires","Amadeo","Silang","Magallanes","Gen. Mariano Alvarez","Naic","Indang","Ternate","Maragondon","Alfonso","Mendez","Rosario","Gen. Emilio Aguinaldo"],
+    "Laguna": ["Calamba","San Pablo","Santa Rosa","Biñan","San Pedro","Los Baños","Cabuyao","Bay","Calauan","Cavinti","Famy","Kalayaan","Liliw","Luisiana","Lumban","Mabitac","Magdalena","Majayjay","Nagcarlan","Paete","Pagsanjan","Pakil","Pangil","Pila","Rizal","Santa Cruz","Santa Maria","Siniloan","Victoria"],
+    "Quezon": ["Lucena","Tayabas","Tiaong","Candelaria","Sariaya","Mauban","Gumaca","Atimonan","Buenavista","Burdeos","Calauag","Catanauan","Dolores","General Luna","General Nakar","Guinayangan","Infanta","Jomalig","Lucban","Macalelon","Mulanay","Padre Burgos","Pagbilao","Panukulan","Patnanungan","Polillo","Quezon","Real","Sampaloc","San Andres","San Antonio","San Francisco","San Narciso","Tagkawayan","Taytay","Unisan"],
+    "Rizal": ["Antipolo","Angono","Baras","Binangonan","Cainta","Cardona","Jala-jala","Morong","Pililla","Rodriguez","San Mateo","Tanay","Taytay","Teresa"]
+  };
+
+  const citySelect = document.getElementById("city");
+  const weatherBox = document.getElementById("weatherBox");
+
+  function populateDropdown(filter="") {
+    citySelect.innerHTML = "";
+    const majorGroup = document.createElement("optgroup");
+    majorGroup.label = "Major Cities";
+    majorCities.forEach(city => {
+      if (city.toLowerCase().includes(filter.toLowerCase())) {
+        const opt = document.createElement("option");
+        opt.value = city;
+        opt.textContent = city;
+        majorGroup.appendChild(opt);
+      }
+    });
+    citySelect.appendChild(majorGroup);
+
+    for (const province in calabarzon) {
+      const provGroup = document.createElement("optgroup");
+      provGroup.label = province;
+      calabarzon[province].forEach(city => {
+        if (city.toLowerCase().includes(filter.toLowerCase())) {
+          const opt = document.createElement("option");
+          opt.value = city;
+          opt.textContent = city;
+          provGroup.appendChild(opt);
+        }
+      });
+      citySelect.appendChild(provGroup);
+    }
+  }
+  populateDropdown();
+  document.getElementById("search").addEventListener("input", e => populateDropdown(e.target.value));
+
+  const weatherMap = {
+    0:"Clear sky 🌞",1:"Mainly clear 🌤️",2:"Partly cloudy ⛅",3:"Overcast ☁️",
+    45:"Fog 🌫️",48:"Depositing rime fog 🌫️",
+    51:"Light drizzle 🌦️",53:"Moderate drizzle 🌦️",55:"Dense drizzle 🌦️",
+    61:"Slight rain 🌧️",63:"Moderate rain 🌧️",65:"Heavy rain 🌧️",
+    71:"Slight snow ❄️",73:"Moderate snow ❄️",75:"Heavy snow ❄️",
+    80:"Slight rain showers 🌦️",81:"Moderate rain showers 🌦️",82:"Violent rain showers 🌧️",
+    95:"Thunderstorm ⛈️",96:"Thunderstorm with hail ⛈️",99:"Severe thunderstorm with hail ⛈️"
+  };
+
+  const weatherIcons = {
+    0:"☀️",1:"🌤️",2:"⛅",3:"☁️",45:"🌫️",48:"🌫️",51:"🌦️",53:"🌦️",55:"🌦️",
+    61:"🌧️",63:"🌧️",65:"🌧️",71:"❄️",73:"❄️",75:"❄️",80:"🌦️",81:"🌦️",
+    82:"🌦️",95:"⛈️",96:"⛈️",99:"⛈️"
+  };
+
+  function getWeatherClass(code) {
+    if ([0,1].includes(code)) return "clear";
+    if ([2,3].includes(code)) return "partly";
+    if ([45,48].includes(code)) return "cloudy";
+    if ([51,53,55,61,63,65,80,81,82].includes(code)) return "rain";
+    if ([71,73,75].includes(code)) return "snow";
+    if ([95,96,99].includes(code)) return "storm";
+    return "cloudy";
+  }
+
+  function formatDate(dateStr) {
+    return new Date(dateStr).toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  }
+
+  async function geocodeCity(city) {
+    const res = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=5&language=en&format=json`);
+    if (!res.ok) throw new Error("Geocoding failed: " + res.status);
+    const j = await res.json();
+    const ph = j.results?.find(r => r.country === "Philippines");
+    if (!ph) throw new Error(`Weather for "${city}" is unavailable.`);
+    return ph;
+  }
+
+  async function getCurrentWeatherByCity(city) {
+    const p = await geocodeCity(city);
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&current_weather=true&timezone=auto`);
+    if (!res.ok) throw new Error("Weather fetch failed: " + res.status);
+    const j = await res.json();
+    j.location = p;
+    return j;
+  }
+
+  async function get7DayForecastByCity(city) {
+    const p = await geocodeCity(city);
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${p.latitude}&longitude=${p.longitude}&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto&forecast_days=7`);
+    if (!res.ok) throw new Error("Forecast fetch failed: " + res.status);
+    const j = await res.json();
+    j.location = p;
+    return j;
+  }
+
+  function updateBackground(code) {
+    const body = document.body;
+    if ([0,1].includes(code)) body.className = "sunny";
+    else if ([2,3,45,48].includes(code)) body.className = "cloudy";
+    else if ([51,53,55,61,63,65,80,81,82].includes(code)) body.className = "rainy";
+    else if ([71,73,75].includes(code)) body.className = "snowy";
+    else if ([95,96,99].includes(code)) body.className = "stormy";
+  }
+
+  document.getElementById("getWeather").onclick = async () => {
+    const city = citySelect.value;
+    weatherBox.textContent = "Loading weather...";
+    try {
+      const data = await getCurrentWeatherByCity(city);
+      const code = data.current_weather.weathercode;
+      const cls = getWeatherClass(code);
+      updateBackground(code);
+      weatherBox.innerHTML = `
+        <div class="forecast-card ${cls}" style="margin:auto; max-width:300px; font-size:16px;">
+          <div style="font-weight:600; margin-bottom:8px;">Current Weather in ${data.location.name}</div>
+          <div>Temperature: <b>${data.current_weather.temperature}°C</b></div>
+          <div>Wind Speed: <b>${data.current_weather.windspeed} km/h</b></div>
+          <div>Condition: <b>${weatherMap[code]}</b> ${weatherIcons[code]}</div>
+        </div>`;
+    } catch (err) {
+      weatherBox.textContent = String(err);
+    }
+  };
+
+  document.getElementById("getForecast").onclick = async () => {
+    const city = citySelect.value;
+    weatherBox.textContent = "Loading forecast...";
+    try {
+      const f = await get7DayForecastByCity(city);
+      let html = `<div style="font-weight:600; margin-bottom:10px;">7-Day Forecast for ${city}</div><div class="forecast-grid">`;
+      for (let i = 0; i < f.daily.time.length; i++) {
+        const code = f.daily.weathercode[i];
+        const cls = getWeatherClass(code);
+        const dayName = new Date(f.daily.time[i]).toLocaleDateString('en-US', {weekday:'long'});
+        html += `
+          <div class="forecast-card ${cls}" onclick="updateBackground(${code})">
+            <div class="forecast-icon">${weatherIcons[code]}</div>
+            <div>${dayName}</div>
+            <div>${formatDate(f.daily.time[i])}</div>
+            <div>Max: <b>${f.daily.temperature_2m_max[i]}°C</b></div>
+            <div>Min: <b>${f.daily.temperature_2m_min[i]}°C</b></div>
+            <div>${weatherMap[code]}</div>
+          </div>`;
+      }
+      html += "</div>";
+      weatherBox.innerHTML = html;
+    } catch (err) {
+      weatherBox.textContent = String(err);
+    }
+  };
+  </script>
+</body>
+</html>
